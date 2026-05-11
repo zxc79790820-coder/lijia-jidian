@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="李家集點">
+<title>李家集點系統</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--pk-red:#E3350D;--pk-yellow:#FFCB05;--pk-blue:#2A75BB;--pk-dark:#1a1a2e;--pk-navy:#16213e;--pk-mid:#0f3460;--pk-green:#3DBE3D;--pk-gray:#A0A0A0;}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;background:var(--pk-dark);}
+body{font-family:'Nunito',sans-serif;color:#F8F8F8;overflow-x:hidden;}
+.app{max-width:430px;margin:0 auto;background:var(--pk-navy);min-height:100vh;position:relative;}
+.screen{display:none;position:relative;z-index:1;min-height:100vh;}
+.screen.active{display:block;}
+.topbar{background:var(--pk-red);padding:1rem 1.25rem 0.85rem;display:flex;align-items:center;justify-content:space-between;box-shadow:0 3px 0 rgba(0,0,0,0.4);position:sticky;top:0;z-index:10;}
+.topbar-title{font-family:'Press Start 2P',monospace;font-size:9px;color:var(--pk-yellow);line-height:1.6;}
+.topbar-sub{font-size:12px;color:rgba(255,255,255,0.75);margin-top:3px;font-weight:700;}
+.pk-ball{width:36px;height:36px;border-radius:50%;border:3px solid #fff;background:linear-gradient(180deg,var(--pk-red) 0%,var(--pk-red) 47%,#222 47%,#222 53%,#fff 53%);position:relative;flex-shrink:0;cursor:pointer;}
+.pk-ball::after{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:10px;height:10px;border-radius:50%;background:#fff;border:2px solid #333;}
+.sync-bar{display:flex;align-items:center;gap:7px;padding:6px 1.25rem;background:rgba(0,0,0,0.25);}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--pk-gray);flex-shrink:0;}
+.sync-dot.online{background:var(--pk-green);box-shadow:0 0 5px var(--pk-green);animation:pulse 2s infinite;}
+.sync-dot.offline{background:#ffaa00;}
+.sync-dot.error{background:var(--pk-red);}
+.sync-text{font-size:10px;color:rgba(255,255,255,0.45);font-weight:700;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.35}}
+.login-bg{background:var(--pk-dark);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem 1.5rem;}
+.pk-logo{font-family:'Press Start 2P',monospace;font-size:10px;color:var(--pk-yellow);text-align:center;line-height:2;text-shadow:2px 2px 0 var(--pk-red);margin-bottom:0.25rem;}
+.pk-logo-sub{font-family:'Press Start 2P',monospace;font-size:6px;color:rgba(255,255,255,0.3);text-align:center;margin-bottom:2rem;letter-spacing:2px;}
+.big-ball{width:100px;height:100px;border-radius:50%;border:5px solid #fff;background:linear-gradient(180deg,var(--pk-red) 0%,var(--pk-red) 47%,#333 47%,#333 53%,#555 53%);position:relative;margin:0 auto 2.5rem;box-shadow:0 0 30px rgba(227,53,13,0.4);animation:float 3s ease-in-out infinite;}
+.big-ball::after{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:26px;height:26px;border-radius:50%;background:#fff;border:4px solid #333;}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.trainer-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;width:100%;margin-bottom:1.5rem;}
+.trainer-card{background:var(--pk-navy);border:2px solid rgba(255,255,255,0.1);border-radius:16px;padding:1.5rem 1rem;text-align:center;cursor:pointer;transition:all 0.2s;position:relative;overflow:hidden;}
+.trainer-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:16px 16px 0 0;background:rgba(255,255,255,0.1);}
+.trainer-card.sel-dad{border-color:var(--pk-red);box-shadow:0 4px 20px rgba(227,53,13,0.3);}
+.trainer-card.sel-dad::before{background:var(--pk-red);}
+.trainer-card.sel-mom{border-color:var(--pk-blue);box-shadow:0 4px 20px rgba(42,117,187,0.3);}
+.trainer-card.sel-mom::before{background:var(--pk-blue);}
+.trainer-icon{font-size:38px;margin-bottom:10px;}
+.trainer-name{font-family:'Press Start 2P',monospace;font-size:8px;color:#fff;line-height:1.6;}
+.pk-btn{background:var(--pk-yellow);color:var(--pk-dark);border:none;border-radius:14px;padding:14px 28px;font-family:'Press Start 2P',monospace;font-size:9px;cursor:pointer;width:100%;box-shadow:0 4px 0 #b8960a;transition:all 0.1s;display:flex;align-items:center;justify-content:center;gap:8px;}
+.pk-btn:active{transform:translateY(2px);box-shadow:0 1px 0 #b8960a;}
+.pk-btn:disabled{opacity:0.5;cursor:not-allowed;transform:none;}
+.pk-btn-red{background:var(--pk-red);color:#fff;box-shadow:0 4px 0 #9e2509;}
+.pk-btn-red:active{box-shadow:0 1px 0 #9e2509;}
+.pk-btn-sm{padding:9px 16px;font-size:7px;width:auto;}
+.section-label{font-family:'Press Start 2P',monospace;font-size:7px;color:var(--pk-yellow);padding:1rem 1.25rem 0.5rem;letter-spacing:1px;}
+.kid-card{margin:0 1rem 0.75rem;background:var(--pk-mid);border-radius:16px;padding:1rem 1.25rem;cursor:pointer;border:2px solid rgba(255,255,255,0.05);transition:all 0.2s;display:flex;align-items:center;gap:14px;position:relative;overflow:hidden;}
+.kid-card::before{content:'';position:absolute;top:0;left:0;bottom:0;width:4px;border-radius:4px 0 0 4px;}
+.kid-card.duoduo::before{background:var(--pk-red);}
+.kid-card.lele::before{background:var(--pk-blue);}
+.kid-card:active{transform:scale(0.98);}
+.pk-avatar{width:54px;height:54px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-family:'Press Start 2P',monospace;font-size:12px;}
+.pk-avatar.duoduo{background:radial-gradient(circle at 40% 35%,#f76054,var(--pk-red));border:2px solid rgba(255,255,255,0.2);color:#fff;}
+.pk-avatar.lele{background:radial-gradient(circle at 40% 35%,#5299e0,var(--pk-blue));border:2px solid rgba(255,255,255,0.2);color:#fff;}
+.kid-name-pk{font-family:'Press Start 2P',monospace;font-size:9px;color:#fff;margin-bottom:7px;}
+.pk-pts-badge{background:var(--pk-yellow);color:var(--pk-dark);border-radius:8px;padding:4px 12px;font-family:'Press Start 2P',monospace;font-size:9px;font-weight:700;display:inline-block;}
+.weekly-wrap{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 1rem 1.5rem;}
+.weekly-card{background:var(--pk-mid);border-radius:12px;padding:0.85rem 1rem;text-align:center;}
+.weekly-label{font-size:11px;color:var(--pk-gray);font-weight:700;margin-bottom:5px;}
+.weekly-val{font-family:'Press Start 2P',monospace;font-size:11px;color:var(--pk-yellow);}
+.kid-header{padding:1.25rem 1.25rem 0.75rem;display:flex;align-items:center;gap:16px;}
+.big-avatar{width:66px;height:66px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-family:'Press Start 2P',monospace;font-size:15px;box-shadow:0 4px 14px rgba(0,0,0,0.4);}
+.big-avatar.duoduo{background:radial-gradient(circle at 40% 35%,#f76054,var(--pk-red));color:#fff;border:3px solid rgba(255,255,255,0.25);}
+.big-avatar.lele{background:radial-gradient(circle at 40% 35%,#5299e0,var(--pk-blue));color:#fff;border:3px solid rgba(255,255,255,0.25);}
+.kid-stat-name{font-family:'Press Start 2P',monospace;font-size:9px;color:#fff;margin-bottom:7px;line-height:1.6;}
+.kid-stat-pts{font-family:'Press Start 2P',monospace;font-size:18px;color:var(--pk-yellow);}
+.action-row{display:flex;gap:8px;padding:0 1rem 0.75rem;}
+.tab-bar{display:flex;border-bottom:2px solid rgba(255,255,255,0.07);}
+.tab{flex:1;padding:0.65rem 4px;text-align:center;font-family:'Press Start 2P',monospace;font-size:6px;color:var(--pk-gray);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all 0.2s;line-height:1.9;}
+.tab.active{color:var(--pk-yellow);border-bottom-color:var(--pk-yellow);}
+.filter-row{display:flex;gap:6px;padding:0.75rem 1.25rem 0.25rem;}
+.filter-btn{background:var(--pk-mid);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:5px 13px;font-size:11px;color:var(--pk-gray);cursor:pointer;font-weight:700;}
+.filter-btn.active{background:var(--pk-yellow);color:var(--pk-dark);border-color:var(--pk-yellow);}
+.log-item{display:flex;align-items:center;gap:12px;padding:0.85rem 1.25rem;border-bottom:1px solid rgba(255,255,255,0.05);}
+.log-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.log-dot.plus{background:var(--pk-green);box-shadow:0 0 5px var(--pk-green);}
+.log-dot.minus{background:var(--pk-red);box-shadow:0 0 5px var(--pk-red);}
+.log-reason{font-size:13px;color:#fff;font-weight:700;}
+.log-meta{font-size:11px;color:var(--pk-gray);margin-top:2px;}
+.log-type-badge{font-size:10px;padding:2px 7px;border-radius:5px;font-weight:700;flex-shrink:0;}
+.log-type-add{background:rgba(61,190,61,0.15);color:var(--pk-green);}
+.log-type-redeem{background:rgba(255,203,5,0.15);color:var(--pk-yellow);}
+.log-type-minus{background:rgba(227,53,13,0.15);color:var(--pk-red);}
+.log-pts{font-family:'Press Start 2P',monospace;font-size:9px;flex-shrink:0;}
+.log-pts.plus{color:var(--pk-green);}
+.log-pts.minus{color:var(--pk-red);}
+.log-pts.redeem{color:var(--pk-yellow);}
+.reward-item{display:flex;align-items:center;gap:12px;padding:0.9rem 1.25rem;border-bottom:1px solid rgba(255,255,255,0.05);}
+.reward-name{font-size:14px;color:#fff;font-weight:700;}
+.reward-cost{font-family:'Press Start 2P',monospace;font-size:7px;color:var(--pk-yellow);margin-top:4px;}
+.pk-btn-tiny{background:var(--pk-yellow);color:var(--pk-dark);border:none;border-radius:9px;padding:9px 13px;font-family:'Press Start 2P',monospace;font-size:6px;cursor:pointer;flex-shrink:0;box-shadow:0 3px 0 #b8960a;transition:all 0.1s;line-height:1.5;}
+.pk-btn-tiny:active{transform:translateY(2px);box-shadow:none;}
+.pk-btn-tiny:disabled{opacity:0.3;cursor:not-allowed;transform:none;box-shadow:0 3px 0 #b8960a;}
+.add-section{padding:0.75rem 1.25rem 2rem;}
+.add-label{font-family:'Press Start 2P',monospace;font-size:7px;color:var(--pk-yellow);margin-bottom:0.6rem;letter-spacing:1px;display:block;}
+.preset-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:1.1rem;}
+.preset-btn{background:var(--pk-mid);border:1.5px solid rgba(255,255,255,0.1);border-radius:11px;padding:11px;cursor:pointer;text-align:left;transition:all 0.15s;font-family:'Nunito',sans-serif;}
+.preset-btn:active{transform:scale(0.97);}
+.preset-btn.sel-plus{border-color:var(--pk-yellow);background:rgba(255,203,5,0.1);}
+.preset-btn.sel-minus{border-color:var(--pk-red);background:rgba(227,53,13,0.1);}
+.preset-text{font-size:13px;color:#fff;font-weight:700;}
+.preset-pts{font-family:'Press Start 2P',monospace;font-size:7px;margin-top:5px;}
+.preset-pts.plus{color:var(--pk-green);}
+.preset-pts.minus{color:var(--pk-red);}
+.pk-input{background:var(--pk-mid);border:1.5px solid rgba(255,255,255,0.15);border-radius:11px;color:#fff;padding:11px 14px;width:100%;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;margin-bottom:10px;-webkit-appearance:none;}
+.pk-input:focus{outline:none;border-color:var(--pk-yellow);}
+.pk-input::placeholder{color:rgba(255,255,255,0.25);}
+.back-row{display:flex;align-items:center;gap:6px;padding:0.85rem 1.25rem;color:var(--pk-gray);cursor:pointer;font-size:13px;font-weight:700;}
+.empty-state{text-align:center;padding:3rem 1.25rem;color:var(--pk-gray);font-size:13px;font-weight:700;line-height:2;}
+.empty-pixel{font-family:'Press Start 2P',monospace;font-size:7px;color:var(--pk-gray);display:block;margin-bottom:0.75rem;}
+.toast{position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);background:var(--pk-yellow);color:var(--pk-dark);padding:11px 24px;border-radius:11px;font-family:'Press Start 2P',monospace;font-size:7px;opacity:0;transition:opacity 0.3s;pointer-events:none;z-index:999;box-shadow:0 4px 0 #b8960a;letter-spacing:1px;white-space:nowrap;}
+.toast.show{opacity:1;}
+.cr-section{padding:1rem 1.25rem;border-top:1px solid rgba(255,255,255,0.07);}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="toast" id="toast"></div>
+
+<div class="screen active" id="s-login">
+<div class="login-bg">
+  <div class="pk-logo">李家集點系統</div>
+  <div class="pk-logo-sub">TRAINER SYSTEM v3.0</div>
+  <div class="big-ball"></div>
+  <div class="trainer-grid">
+    <div class="trainer-card" id="c-dad" onclick="selRole('dad')"><div class="trainer-icon">🧢</div><div class="trainer-name">爸爸</div></div>
+    <div class="trainer-card" id="c-mom" onclick="selRole('mom')"><div class="trainer-icon">👒</div><div class="trainer-name">媽媽</div></div>
+  </div>
+  <button class="pk-btn" id="login-btn" onclick="doLogin()">▶ 開始冒險</button>
+  <div style="margin-top:14px;font-size:10px;color:rgba(255,255,255,0.28);text-align:center;font-family:'Press Start 2P',monospace;line-height:2;">⚡ 雲端同步已啟用</div>
+</div>
+</div>
+
+<div class="screen" id="s-home">
+  <div class="topbar">
+    <div><div class="topbar-title">李家集點圖鑑</div><div class="topbar-sub" id="home-role"></div></div>
+    <div class="pk-ball" onclick="logout()"></div>
+  </div>
+  <div class="sync-bar"><div class="sync-dot" id="sync-dot"></div><div class="sync-text" id="sync-text">連線中...</div></div>
+  <div class="section-label">選擇訓練師</div>
+  <div id="kid-list"></div>
+  <div class="section-label">本週戰績</div>
+  <div class="weekly-wrap">
+    <div class="weekly-card"><div class="weekly-label">多多</div><div class="weekly-val" id="w-dd">0 pt</div></div>
+    <div class="weekly-card"><div class="weekly-label">樂樂</div><div class="weekly-val" id="w-ll">0 pt</div></div>
+  </div>
+</div>
+
+<div class="screen" id="s-kid">
+  <div class="topbar">
+    <div><div class="topbar-title" id="k-topbar-title"></div></div>
+    <button class="pk-btn pk-btn-sm pk-btn-red" onclick="showAdd()">+ 記錄</button>
+  </div>
+  <div class="sync-bar"><div class="sync-dot" id="sync-dot2"></div><div class="sync-text" id="sync-text2">連線中...</div></div>
+  <div class="kid-header">
+    <div class="big-avatar" id="k-av"></div>
+    <div><div class="kid-stat-name" id="k-name"></div><div class="kid-stat-pts" id="k-pts"></div></div>
+  </div>
+  <div class="action-row"><button class="pk-btn pk-btn-sm" style="flex:1;" onclick="goHome()">◀ 返回</button></div>
+  <div class="tab-bar">
+    <div class="tab active" onclick="switchTab('log')">行動紀錄</div>
+    <div class="tab" onclick="switchTab('rewards')">獎勵商店</div>
+    <div class="tab" onclick="switchTab('history')">兌換紀錄</div>
+  </div>
+  <div id="tab-log">
+    <div class="filter-row">
+      <div class="filter-btn active" onclick="setFilter('all',this)">全部</div>
+      <div class="filter-btn" onclick="setFilter('add',this)">加點</div>
+      <div class="filter-btn" onclick="setFilter('minus',this)">扣點</div>
+    </div>
+    <div id="log-list"></div>
+  </div>
+  <div id="tab-rewards" style="display:none;">
+    <div id="reward-list"></div>
+    <div class="cr-section">
+      <span class="add-label">自訂獎勵</span>
+      <input class="pk-input" id="cr-name" placeholder="獎勵名稱">
+      <input class="pk-input" id="cr-pts" type="number" placeholder="需要幾點" min="1">
+      <button class="pk-btn" onclick="addCustomReward()" style="font-size:7px;padding:13px;">新增獎勵</button>
+    </div>
+  </div>
+  <div id="tab-history" style="display:none;"><div id="history-list"></div></div>
+</div>
+
+<div class="screen" id="s-add">
+  <div class="topbar">
+    <div><div class="topbar-title" id="add-title">記錄點數</div><div class="topbar-sub">選任務或自訂</div></div>
+  </div>
+  <div class="back-row" onclick="cancelAdd()">◀ 返回</div>
+  <div class="add-section">
+    <span class="add-label">快速選擇任務</span>
+    <div class="preset-grid" id="preset-grid"></div>
+    <span class="add-label">自訂說明（選填）</span>
+    <input class="pk-input" id="custom-reason" placeholder="例：主動幫忙洗碗">
+    <span class="add-label">點數（負數為扣點）</span>
+    <input class="pk-input" id="pts-val" type="number" placeholder="5" inputmode="numeric">
+    <button class="pk-btn pk-btn-red" id="submit-btn" onclick="submitPts()" style="margin-top:0.5rem;font-size:8px;">確認送出 ▶</button>
+  </div>
+</div>
+</div>
+
+<script>
+// Firebase REST API — 完全不需要外部 SDK
+const PID = "lijia-jidian";
+const KEY = "AIzaSyAGNV56zhP_9O8abFx-Tk0lfStN5mOh70M";
+const BASE = "https://firestore.googleapis.com/v1/projects/"+PID+"/databases/(default)/documents";
+
+function toFS(obj){
+  function cv(v){
+    if(v===null||v===undefined)return{nullValue:null};
+    if(typeof v==='boolean')return{booleanValue:v};
+    if(typeof v==='number')return{integerValue:String(Math.round(v))};
+    if(typeof v==='string')return{stringValue:v};
+    if(Array.isArray(v))return{arrayValue:{values:v.map(cv)}};
+    if(typeof v==='object')return{mapValue:{fields:Object.fromEntries(Object.entries(v).map(([k,x])=>[k,cv(x)]))}};
+    return{stringValue:String(v)};
+  }
+  return{fields:Object.fromEntries(Object.entries(obj).map(([k,v])=>[k,cv(v)]))};
+}
+function fromFS(doc){
+  function pv(v){
+    if(!v)return null;
+    if('nullValue' in v)return null;
+    if('booleanValue' in v)return v.booleanValue;
+    if('integerValue' in v)return parseInt(v.integerValue);
+    if('doubleValue' in v)return v.doubleValue;
+    if('stringValue' in v)return v.stringValue;
+    if('arrayValue' in v)return(v.arrayValue.values||[]).map(pv);
+    if('mapValue' in v)return Object.fromEntries(Object.entries(v.mapValue.fields||{}).map(([k,x])=>[k,pv(x)]));
+    return null;
+  }
+  return Object.fromEntries(Object.entries(doc.fields||{}).map(([k,v])=>[k,pv(v)]));
+}
+async function fsGet(id){
+  const r=await fetch(BASE+"/kids/"+id+"?key="+KEY);
+  if(r.status===404)return null;
+  if(!r.ok)throw new Error(r.status);
+  return fromFS(await r.json());
+}
+async function fsSet(id,data){
+  const fields=toFS(data).fields;
+  const mask=Object.keys(fields).map(k=>"updateMask.fieldPaths="+k).join("&");
+  const r=await fetch(BASE+"/kids/"+id+"?"+mask+"&key="+KEY,{
+    method:"PATCH",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({fields})
+  });
+  if(!r.ok)throw new Error(r.status);
+}
+
+// 輪詢（每 10 秒）
+let polls={};
+function startPoll(k){
+  if(polls[k])clearInterval(polls[k]);
+  polls[k]=setInterval(async()=>{
+    try{const d=await fsGet(k);if(d)mergeKid(k,d);setSyncUI("online","雲端同步中 ✓");}
+    catch(e){setSyncUI("offline","網路不穩，資料暫存本機");}
+  },10000);
+}
+function stopPolls(){Object.values(polls).forEach(t=>clearInterval(t));polls={};}
+
+const PRESETS=[
+  {label:"完成家事",pts:3},{label:"收拾玩具",pts:2},
+  {label:"好情緒表現",pts:5},{label:"主動道歉",pts:4},
+  {label:"認真學習",pts:5},{label:"不用提醒完成",pts:3},
+  {label:"發脾氣",pts:-3},{label:"不聽話",pts:-2},
+];
+const DEF_REWARDS=[
+  {name:"冰淇淋一球",pts:10,icon:"🍦"},{name:"零食一包",pts:8,icon:"🍬"},
+  {name:"螢幕時間30分",pts:15,icon:"📱"},{name:"出遊活動",pts:50,icon:"🎡"},
+  {name:"零用錢10元",pts:20,icon:"💰"},
+];
+function freshKid(name,fullName,avatar,color){
+  return{name,fullName,avatar,color,pts:0,log:[],rewards:JSON.parse(JSON.stringify(DEF_REWARDS))};
+}
+
+let role=null,curKid=null,logFilter='all',selPreset=null;
+let kids={
+  duoduo:freshKid("多多","世謙","多","duoduo"),
+  lele:freshKid("樂樂","承哲","樂","lele"),
+};
+
+function lsSave(){try{localStorage.setItem("pkv3",JSON.stringify(kids));}catch(e){}}
+function lsLoad(){
+  try{
+    const d=localStorage.getItem("pkv3");
+    if(!d)return;
+    const p=JSON.parse(d);
+    ["duoduo","lele"].forEach(k=>{if(p[k])mergeKid(k,p[k]);});
+  }catch(e){}
+}
+function mergeKid(k,d){
+  kids[k]={...freshKid(kids[k].name,kids[k].fullName,kids[k].avatar,kids[k].color),...d};
+  if(!Array.isArray(kids[k].log))kids[k].log=[];
+  if(!Array.isArray(kids[k].rewards))kids[k].rewards=JSON.parse(JSON.stringify(DEF_REWARDS));
+  renderHome();
+  if(curKid===k)renderKid();
+}
+
+function setSyncUI(s,msg){
+  ["sync-dot","sync-dot2"].forEach(id=>{
+    const el=document.getElementById(id);if(!el)return;
+    el.className="sync-dot"+(s==="online"?" online":s==="offline"?" offline":s==="error"?" error":"");
+  });
+  ["sync-text","sync-text2"].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=msg||"";});
+}
+function showScreen(id){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  window.scrollTo(0,0);
+}
+function selRole(r){
+  role=r;
+  document.querySelectorAll(".trainer-card").forEach(c=>c.className="trainer-card");
+  document.getElementById("c-"+r).className="trainer-card sel-"+r;
+}
+async function doLogin(){
+  if(!role){showToast("請選擇身份！");return;}
+  const btn=document.getElementById("login-btn");
+  btn.textContent="連線中...";btn.disabled=true;
+  lsLoad();
+  try{
+    await Promise.all(["duoduo","lele"].map(async k=>{
+      const d=await fsGet(k);
+      if(d)mergeKid(k,d);
+      else await fsSet(k,kids[k]);
+    }));
+    setSyncUI("online","雲端同步中 ✓");
+    startPoll("duoduo");startPoll("lele");
+  }catch(e){
+    setSyncUI("offline","離線模式（資料暫存本機）");
+    showToast("網路異常，使用本機資料");
+  }
+  document.getElementById("home-role").textContent=role==="dad"?"爸爸 訓練師":"媽媽 訓練師";
+  renderHome();showScreen("s-home");
+  btn.textContent="▶ 開始冒險";btn.disabled=false;
+}
+function logout(){stopPolls();role=null;curKid=null;document.querySelectorAll(".trainer-card").forEach(c=>c.className="trainer-card");showScreen("s-login");}
+
+function weeklyPts(k){
+  const wa=Date.now()-7*86400000;
+  return kids[k].log.filter(l=>new Date(l.time).getTime()>wa&&l.pts>0&&!l.isRedeem).reduce((a,b)=>a+b.pts,0);
+}
+function renderHome(){
+  const list=document.getElementById("kid-list");if(!list)return;
+  list.innerHTML="";
+  ["duoduo","lele"].forEach(k=>{
+    const kid=kids[k],div=document.createElement("div");
+    div.className="kid-card "+k;div.onclick=()=>openKid(k);
+    div.innerHTML='<div class="pk-avatar '+k+'">'+kid.avatar+'</div><div style="flex:1"><div class="kid-name-pk">'+kid.name+'（'+kid.fullName+'）</div><div style="margin-top:6px;"><span class="pk-pts-badge">'+kid.pts+' PT</span></div></div><div style="color:rgba(255,255,255,0.2);font-size:22px;">›</div>';
+    list.appendChild(div);
+  });
+  const dd=document.getElementById("w-dd");if(dd)dd.textContent=weeklyPts("duoduo")+" pt";
+  const ll=document.getElementById("w-ll");if(ll)ll.textContent=weeklyPts("lele")+" pt";
+}
+function openKid(k){curKid=k;logFilter='all';renderKid();switchTab('log');showScreen("s-kid");}
+function renderKid(){
+  if(!curKid)return;
+  const kid=kids[curKid];
+  const t=document.getElementById("k-topbar-title");if(t)t.textContent=kid.name;
+  const n=document.getElementById("k-name");if(n)n.textContent=kid.name+"（"+kid.fullName+"）";
+  const p=document.getElementById("k-pts");if(p)p.textContent=kid.pts+" PT";
+  const av=document.getElementById("k-av");if(av){av.className="big-avatar "+curKid;av.textContent=kid.avatar;}
+  renderLog();renderRewards();renderHistory();
+}
+function setFilter(f,el){
+  logFilter=f;
+  document.querySelectorAll(".filter-btn").forEach(b=>b.classList.remove("active"));
+  el.classList.add("active");renderLog();
+}
+function renderLog(){
+  const kid=kids[curKid],el=document.getElementById("log-list");if(!el)return;
+  let logs=[...kid.log].reverse();
+  if(logFilter==='add')logs=logs.filter(l=>l.pts>0&&!l.isRedeem);
+  if(logFilter==='minus')logs=logs.filter(l=>l.pts<0&&!l.isRedeem);
+  if(!logs.length){el.innerHTML='<div class="empty-state"><span class="empty-pixel">-- EMPTY --</span>還沒有紀錄</div>';return;}
+  el.innerHTML=logs.slice(0,50).map(l=>{
+    const isR=l.isRedeem,cls=isR?"redeem":l.pts>=0?"plus":"minus",dc=l.pts>=0?"plus":"minus";
+    const badge=isR?'<span class="log-type-badge log-type-redeem">兌換</span>':l.pts>=0?'<span class="log-type-badge log-type-add">加點</span>':'<span class="log-type-badge log-type-minus">扣點</span>';
+    return'<div class="log-item"><div class="log-dot '+dc+'"></div><div style="flex:1"><div class="log-reason">'+l.reason+'</div><div class="log-meta">'+fmt(l.time)+'</div></div>'+badge+'<div class="log-pts '+cls+'">'+(l.pts>0?"+":"")+l.pts+'</div></div>';
+  }).join("");
+}
+function renderHistory(){
+  const kid=kids[curKid],el=document.getElementById("history-list");if(!el)return;
+  const rs=[...kid.log].reverse().filter(l=>l.isRedeem);
+  if(!rs.length){el.innerHTML='<div class="empty-state"><span class="empty-pixel">-- EMPTY --</span>還沒有兌換記錄</div>';return;}
+  el.innerHTML=rs.slice(0,50).map(l=>'<div class="log-item"><div style="font-size:22px;flex-shrink:0">'+(l.icon||"🎁")+'</div><div style="flex:1"><div class="log-reason">'+l.reason+'</div><div class="log-meta">'+fmt(l.time)+'</div></div><div class="log-pts redeem">'+l.pts+' PT</div></div>').join("");
+}
+function renderRewards(){
+  const kid=kids[curKid],el=document.getElementById("reward-list");if(!el)return;
+  el.innerHTML=kid.rewards.map((r,i)=>'<div class="reward-item"><div style="font-size:24px;flex-shrink:0">'+(r.icon||"🎁")+'</div><div style="flex:1"><div class="reward-name">'+r.name+'</div><div class="reward-cost">'+r.pts+' PT 兌換</div></div><button class="pk-btn-tiny" onclick="redeem('+i+')" '+(kid.pts<r.pts?"disabled":"")+'>兌換</button></div>').join("");
+}
+async function sync(k){
+  lsSave();
+  try{await fsSet(k,kids[k]);setSyncUI("online","雲端同步中 ✓");}
+  catch(e){setSyncUI("offline","離線模式（資料暫存本機）");}
+}
+async function redeem(i){
+  const kid=kids[curKid],r=kid.rewards[i];
+  if(kid.pts<r.pts){showToast("點數不足！繼續加油！");return;}
+  if(!confirm("確定幫 "+kid.name+" 兌換「"+r.name+"」？\n將扣除 "+r.pts+" PT"))return;
+  kid.pts=kid.pts-r.pts;
+  kid.log.push({reason:"兌換："+r.name,pts:-r.pts,time:new Date().toISOString(),isRedeem:true,icon:r.icon||"🎁"});
+  renderKid();await sync(curKid);showToast("已兌換「"+r.name+"」🎉");
+}
+async function addCustomReward(){
+  const name=document.getElementById("cr-name").value.trim();
+  const pts=parseInt(document.getElementById("cr-pts").value);
+  if(!name||!pts||pts<1){showToast("請填寫名稱和點數");return;}
+  kids[curKid].rewards.push({name,pts,icon:"🎁"});
+  renderRewards();await sync(curKid);
+  document.getElementById("cr-name").value="";document.getElementById("cr-pts").value="";
+  showToast("已新增："+name);
+}
+function switchTab(t){
+  document.querySelectorAll(".tab").forEach((el,i)=>el.classList.toggle("active",["log","rewards","history"][i]===t));
+  document.getElementById("tab-log").style.display=t==="log"?"":"none";
+  document.getElementById("tab-rewards").style.display=t==="rewards"?"":"none";
+  document.getElementById("tab-history").style.display=t==="history"?"":"none";
+}
+function showAdd(){
+  selPreset=null;
+  document.getElementById("custom-reason").value="";
+  document.getElementById("pts-val").value="";
+  document.getElementById("add-title").textContent="幫 "+kids[curKid].name+" 記錄";
+  document.getElementById("preset-grid").innerHTML=PRESETS.map((p,i)=>'<button class="preset-btn" id="pb'+i+'" onclick="selPB('+i+')"><div class="preset-text">'+p.label+'</div><div class="preset-pts '+(p.pts>=0?"plus":"minus")+'">'+(p.pts>0?"+":"")+p.pts+' PT</div></button>').join("");
+  showScreen("s-add");
+}
+function selPB(i){
+  selPreset=i;
+  document.querySelectorAll(".preset-btn").forEach((b,j)=>{b.className="preset-btn"+(j===i?(PRESETS[i].pts>=0?" sel-plus":" sel-minus"):"");});
+  document.getElementById("pts-val").value=PRESETS[i].pts;
+}
+async function submitPts(){
+  const custom=document.getElementById("custom-reason").value.trim();
+  const pts=parseInt(document.getElementById("pts-val").value);
+  const reason=custom||(selPreset!==null?PRESETS[selPreset].label:"");
+  if(!reason){showToast("請選擇任務或輸入說明");return;}
+  if(isNaN(pts)||pts===0){showToast("請輸入點數");return;}
+  const btn=document.getElementById("submit-btn");
+  btn.disabled=true;btn.textContent="儲存中...";
+  kids[curKid].pts=Math.max(0,kids[curKid].pts+pts);
+  kids[curKid].log.push({reason,pts,time:new Date().toISOString(),isRedeem:false});
+  await sync(curKid);
+  showToast((pts>0?"+":"")+pts+" PT！"+reason);
+  btn.disabled=false;btn.textContent="確認送出 ▶";
+  cancelAdd();
+}
+function cancelAdd(){openKid(curKid);}
+function goHome(){renderHome();showScreen("s-home");}
+function fmt(iso){const d=new Date(iso);return(d.getMonth()+1)+"/"+d.getDate()+" "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");}
+let tt;
+function showToast(msg){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");clearTimeout(tt);tt=setTimeout(()=>t.classList.remove("show"),2500);}
+</script>
+</body>
+</html>
